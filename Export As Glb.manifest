@@ -1,0 +1,12 @@
+{
+	"autodeskProduct":	"Fusion",
+	"type":	"addin",
+	"author":	"Joakim Olsson",
+	"description":	{
+		"":	"Exports current project to GLB file using Python subprocess calls to Cascadio (https://pypi.org/project/cascadio/)"
+	},
+	"version":	"0.1.0",
+	"supportedOS":	"windows|mac",
+	"editEnabled":	true,
+	"iconFilename":	"ScriptIcon.svg"
+}
