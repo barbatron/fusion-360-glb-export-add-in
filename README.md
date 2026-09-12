@@ -5,6 +5,60 @@ This Fusion 360 add-in exports CAD geometry to GLB files by:
 2. Running a selected external Python interpreter.
 3. Using cascadio to convert STEP to GLB.
 
+## Installation
+
+### One-liner install scripts
+
+PowerShell (Windows):
+
+```powershell
+powershell -ExecutionPolicy Bypass -Command "iwr -UseBasicParsing https://raw.githubusercontent.com/barbatron/fusion-360-glb-export-add-in/main/install-addin.ps1 | iex"
+```
+
+Bash (macOS):
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/barbatron/fusion-360-glb-export-add-in/main/install-addin.sh)"
+```
+
+Both scripts download the latest ZIP from GitHub and install the add-in into the Fusion AddIns directory under the correct folder name: Export As Glb.
+
+### Option 1: Download ZIP from GitHub
+
+1. Open the repository page:
+  https://github.com/barbatron/fusion-360-glb-export-add-in
+2. Click Code, then Download ZIP.
+3. Extract the ZIP.
+4. Copy the add-in folder into your Fusion AddIns directory:
+  - Windows: %AppData%\Autodesk\Autodesk Fusion 360\API\AddIns
+  - macOS: ~/Library/Application Support/Autodesk/Autodesk Fusion 360/API/AddIns
+
+### Option 2: Clone from GitHub
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/barbatron/fusion-360-glb-export-add-in.git
+```
+
+2. Copy the add-in folder into your Fusion AddIns directory:
+  - Windows: %AppData%\Autodesk\Autodesk Fusion 360\API\AddIns
+  - macOS: ~/Library/Application Support/Autodesk/Autodesk Fusion 360/API/AddIns
+
+### Name Alignment Requirement
+
+For best Fusion add-in loading reliability, keep names aligned:
+1. Add-in folder name
+2. Manifest filename base name
+3. Python entry filename base name
+
+Example alignment:
+- Folder: Export As Glb
+- Manifest: Export As Glb.manifest
+- Python file: Export As Glb.py
+
+After copying files, open Scripts and Add-Ins in Fusion, go to Add-Ins, then run and optionally enable Run on Startup.
+
 ## What It Can Export
 
 - Full design export (from toolbar command).
