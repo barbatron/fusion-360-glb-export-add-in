@@ -5,7 +5,7 @@
 	"description":	{
 		"":	"Exports current project to GLB file using Python subprocess calls to Cascadio (https://pypi.org/project/cascadio/). Icon humbly stolen from Cascadio."
 	},
-	"version":	"0.1.0",
+	"version":	"0.9.0",
 	"supportedOS":	"windows|mac",
 	"editEnabled":	true,
 	"iconFilename":	"trimesh.png"
