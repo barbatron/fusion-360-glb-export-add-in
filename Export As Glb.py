@@ -16,7 +16,6 @@ CMD_NAME = "Export as GLTF"
 CMD_DESCRIPTION = "Export current design to GLB using cascadio"
 WORKSPACE_ID = "FusionSolidEnvironment"
 PANEL_ID = "SolidScriptsAddinsPanel"
-CONTROL_ID = "ExportAsGLTFCommandControl"
 
 handlers = []
 
@@ -459,10 +458,9 @@ def start(context):
             panel = ui.allToolbarPanels.itemById(PANEL_ID)
 
         if panel:
-            control = panel.controls.itemById(CONTROL_ID)
+            control = panel.controls.itemById(CMD_ID)
             if not control:
                 control = panel.controls.addCommand(cmd_def)
-                control.id = CONTROL_ID
                 control.isPromoted = True
         else:
             ui.messageBox("Could not find target toolbar panel for Export as GLTF add-in.")
@@ -483,7 +481,7 @@ def stop(context):
             panel = ui.allToolbarPanels.itemById(PANEL_ID)
 
         if panel:
-            control = panel.controls.itemById(CONTROL_ID)
+            control = panel.controls.itemById(CMD_ID)
             if control:
                 control.deleteMe()
 
@@ -498,19 +496,5 @@ def stop(context):
 
 
 def run(context):
-    # Keep run for compatibility if launched directly as a script.
-    ui = None
-    try:
-        app = adsk.core.Application.get()
-        ui  = app.userInterface
-        design = app.activeProduct
-        if not design:
-            ui.messageBox("No active design found.")
-            return
-        execute_export(ui, app, design)
-            
-    except Exception as e:
-        # Write the error message to the TEXT COMMANDS window.
-        app.log(f'Failed:\n{traceback.format_exc()}')
-        if ui:
-            ui.messageBox(f'Fusion script failed:\n{str(e)}')
+    # For add-ins, enabling should register commands/UI only.
+    start(context)
