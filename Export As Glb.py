@@ -12,7 +12,7 @@ ATTR_LAST_PYTHON = "lastPythonExecutable"
 MIN_PYTHON = (3, 10)
 
 CMD_ID = "ExportAsGLTFCommand"
-CMD_NAME = "Export as GLTF"
+CMD_NAME = "Export as GLB"
 CMD_DESCRIPTION = "Export current design to GLB using cascadio"
 WORKSPACE_ID = "FusionSolidEnvironment"
 PANEL_ID = "SolidScriptsAddinsPanel"
@@ -265,7 +265,7 @@ def execute_export(ui, app, design):
 
     file_dialog = ui.createFileDialog()
     file_dialog.title = "Save GLB As"
-    file_dialog.filter = "glTF Binary (*.glb)"
+    file_dialog.filter = "GLB Files (*.glb)"
     file_dialog.initialDirectory = default_dir
     file_dialog.initialFilename = f"{default_stem}.glb"
 
@@ -422,7 +422,7 @@ class _CommandExecuteHandler(adsk.core.CommandEventHandler):
             execute_export(ui, app, design)
         except Exception:
             if ui:
-                ui.messageBox(f'Export as GLTF failed:\n{traceback.format_exc()}')
+                ui.messageBox(f'Export as GLB failed:\n{traceback.format_exc()}')
 
 
 class _CommandCreatedHandler(adsk.core.CommandCreatedEventHandler):
@@ -463,7 +463,7 @@ def start(context):
                 control = panel.controls.addCommand(cmd_def)
                 control.isPromoted = True
         else:
-            ui.messageBox("Could not find target toolbar panel for Export as GLTF add-in.")
+            ui.messageBox("Could not find target toolbar panel for Export as GLB add-in.")
     except Exception:
         if ui:
             ui.messageBox(f'Add-in start failed:\n{traceback.format_exc()}')
