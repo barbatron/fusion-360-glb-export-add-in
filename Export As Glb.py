@@ -14,6 +14,9 @@ MIN_PYTHON = (3, 10)
 CMD_ID = "ExportAsGLTFCommand"
 CMD_NAME = "Export as GLB"
 CMD_DESCRIPTION = "Export current design to GLB using cascadio"
+SEL_CMD_ID = "ExportSelectionAsGLBCommand"
+SEL_CMD_NAME = "Export Selection as GLB"
+SEL_CMD_DESCRIPTION = "Export selected component/body to GLB using cascadio"
 WORKSPACE_ID = "FusionSolidEnvironment"
 PANEL_ID = "SolidScriptsAddinsPanel"
 
@@ -252,11 +255,60 @@ def _select_python_executable(ui, design, candidates):
     return selected["exe"], selected["version"]
 
 
-def execute_export(ui, app, design):
+def _supported_selection_entity(entity):
+    if not entity:
+        return False
+    valid_types = {
+        adsk.fusion.Occurrence.classType(),
+        adsk.fusion.Component.classType(),
+        adsk.fusion.BRepBody.classType(),
+    }
+    return entity.objectType in valid_types
+
+
+def _resolve_selection_export_target(ui, design):
+    if ui.activeSelections.count < 1:
+        return None, None, None
+
+    selected = ui.activeSelections.item(0).entity
+    root = design.rootComponent
+
+    if selected.objectType == adsk.fusion.Occurrence.classType():
+        occ = adsk.fusion.Occurrence.cast(selected)
+        if not occ or not occ.component:
+            return None, None, None
+        return occ.component, _safe_file_stem(occ.name or occ.component.name), None
+
+    if selected.objectType == adsk.fusion.Component.classType():
+        comp = adsk.fusion.Component.cast(selected)
+        if not comp:
+            return None, None, None
+        return comp, _safe_file_stem(comp.name), None
+
+    if selected.objectType == adsk.fusion.BRepBody.classType():
+        body = adsk.fusion.BRepBody.cast(selected)
+        if not body:
+            return None, None, None
+
+        matrix = adsk.core.Matrix3D.create()
+        temp_occ = root.occurrences.addNewComponent(matrix)
+        body.copyToComponent(temp_occ)
+        temp_comp = temp_occ.component
+        body_name = body.name if body.name else temp_comp.name
+        return temp_comp, _safe_file_stem(body_name), temp_occ
+
+    return None, None, None
+
+
+def execute_export(ui, app, design, export_component=None, default_stem=None):
     exportMgr = design.exportManager
 
-    root_name = design.rootComponent.name if design and design.rootComponent else "fusion_model"
-    default_stem = _safe_file_stem(root_name)
+    if not export_component:
+        export_component = design.rootComponent
+
+    if not default_stem:
+        root_name = export_component.name if export_component else "fusion_model"
+        default_stem = _safe_file_stem(root_name)
 
     last_dir_attr = design.attributes.itemByName(ATTR_GROUP, ATTR_LAST_DIR)
     default_dir = os.path.expanduser("~")
@@ -286,7 +338,7 @@ def execute_export(ui, app, design):
     step_path = os.path.join(tempfile.gettempdir(), step_name)
 
     # 1. Export locally to native STEP format
-    stepOptions = exportMgr.createSTEPExportOptions(step_path, design.rootComponent)
+    stepOptions = exportMgr.createSTEPExportOptions(step_path, export_component)
     exportMgr.execute(stepOptions)
 
     app.log(f"STEP file exported to: {step_path}")
@@ -410,6 +462,10 @@ except Exception as e:
 
 
 class _CommandExecuteHandler(adsk.core.CommandEventHandler):
+    def __init__(self, selection_only=False):
+        super().__init__()
+        self.selection_only = selection_only
+
     def notify(self, args):
         ui = None
         try:
@@ -419,23 +475,71 @@ class _CommandExecuteHandler(adsk.core.CommandEventHandler):
             if not design:
                 ui.messageBox("No active design found.")
                 return
-            execute_export(ui, app, design)
+
+            if self.selection_only:
+                target_component, suggested_name, temp_occ = _resolve_selection_export_target(ui, design)
+                if not target_component:
+                    ui.messageBox("Select a component occurrence or body, then right-click and run Export Selection as GLB.")
+                    return
+                try:
+                    execute_export(ui, app, design, export_component=target_component, default_stem=suggested_name)
+                finally:
+                    if temp_occ:
+                        temp_occ.deleteMe()
+            else:
+                execute_export(ui, app, design)
         except Exception:
             if ui:
                 ui.messageBox(f'Export as GLB failed:\n{traceback.format_exc()}')
 
 
 class _CommandCreatedHandler(adsk.core.CommandCreatedEventHandler):
+    def __init__(self, selection_only=False):
+        super().__init__()
+        self.selection_only = selection_only
+
     def notify(self, args):
         try:
             cmd = args.command
-            on_execute = _CommandExecuteHandler()
+            on_execute = _CommandExecuteHandler(self.selection_only)
             cmd.execute.add(on_execute)
             handlers.append(on_execute)
         except Exception:
             app = adsk.core.Application.get()
             if app:
                 app.log(f'Command creation failed:\n{traceback.format_exc()}')
+
+
+class _MarkingMenuHandler(adsk.core.MarkingMenuEventHandler):
+    def notify(self, args):
+        try:
+            app = adsk.core.Application.get()
+            ui = app.userInterface
+            menu_args = adsk.core.MarkingMenuEventArgs.cast(args)
+            if not menu_args:
+                return
+
+            if ui.activeSelections.count < 1:
+                return
+
+            entity = ui.activeSelections.item(0).entity
+            if not _supported_selection_entity(entity):
+                return
+
+            cmd_def = ui.commandDefinitions.itemById(SEL_CMD_ID)
+            if not cmd_def:
+                return
+
+            linear_menu = menu_args.linearMarkingMenu
+            if not linear_menu:
+                return
+
+            if not linear_menu.controls.itemById(SEL_CMD_ID):
+                linear_menu.controls.addCommand(cmd_def)
+        except Exception:
+            app = adsk.core.Application.get()
+            if app:
+                app.log(f'Marking menu setup failed:\n{traceback.format_exc()}')
 
 
 def start(context):
@@ -448,9 +552,21 @@ def start(context):
         if not cmd_def:
             cmd_def = ui.commandDefinitions.addButtonDefinition(CMD_ID, CMD_NAME, CMD_DESCRIPTION)
 
-        on_created = _CommandCreatedHandler()
+        sel_cmd_def = ui.commandDefinitions.itemById(SEL_CMD_ID)
+        if not sel_cmd_def:
+            sel_cmd_def = ui.commandDefinitions.addButtonDefinition(SEL_CMD_ID, SEL_CMD_NAME, SEL_CMD_DESCRIPTION)
+
+        on_created = _CommandCreatedHandler(selection_only=False)
         cmd_def.commandCreated.add(on_created)
         handlers.append(on_created)
+
+        on_sel_created = _CommandCreatedHandler(selection_only=True)
+        sel_cmd_def.commandCreated.add(on_sel_created)
+        handlers.append(on_sel_created)
+
+        on_marking_menu = _MarkingMenuHandler()
+        ui.markingMenuDisplaying.add(on_marking_menu)
+        handlers.append(on_marking_menu)
 
         workspace = ui.workspaces.itemById(WORKSPACE_ID)
         panel = workspace.toolbarPanels.itemById(PANEL_ID) if workspace else None
@@ -488,6 +604,10 @@ def stop(context):
         cmd_def = ui.commandDefinitions.itemById(CMD_ID)
         if cmd_def:
             cmd_def.deleteMe()
+
+        sel_cmd_def = ui.commandDefinitions.itemById(SEL_CMD_ID)
+        if sel_cmd_def:
+            sel_cmd_def.deleteMe()
 
         handlers.clear()
     except Exception:
