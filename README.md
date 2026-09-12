@@ -123,6 +123,7 @@ If missing, it can prompt to install them into the selected interpreter.
 
 - Enabling the add-in should only register UI; it should not start export immediately.
 - GLB is used consistently as the output format.
+- Vendoring numpy/cascadio into the add-in was considered, but was not adopted due to higher maintenance overhead and native binary compatibility caveats across Fusion/Python/platform updates.
 - If command labels do not refresh after edits, toggle the add-in off/on or restart Fusion.
 
 ## Troubleshooting
