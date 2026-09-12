@@ -8,6 +8,7 @@ import traceback
 
 ATTR_GROUP = "ExportAsGLTF"
 ATTR_LAST_DIR = "lastExportDir"
+ATTR_LAST_PYTHON = "lastPythonExecutable"
 MIN_PYTHON = (3, 10)
 
 
@@ -20,9 +21,43 @@ def _safe_file_stem(name):
     return cleaned or "fusion_model"
 
 
-def _discover_python_executable():
+def _is_fusion_python(exe_path):
+    norm = os.path.normcase(exe_path or "")
+    return "autodesk" in norm and "webdeploy" in norm
+
+
+def _probe_python_version(exe):
+    probe_cmd = [exe, "-c", "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"]
+    base = os.path.basename(exe).lower()
+    if base == "py.exe" or base == "py":
+        probe_cmd = [exe, "-3", "-c", "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"]
+
+    probe = subprocess.run(
+        probe_cmd,
+        capture_output=True,
+        text=True,
+        timeout=5,
+    )
+    if probe.returncode != 0:
+        return None
+
+    version_text = (probe.stdout or "").strip()
+    parts = version_text.split(".")
+    if len(parts) < 2:
+        return None
+
+    try:
+        major = int(parts[0])
+        minor = int(parts[1])
+    except ValueError:
+        return None
+
+    return major, minor
+
+
+def _discover_python_candidates():
     candidates = []
-    for cmd in ("python", "python3"):
+    for cmd in ("python", "python3", "py"):
         resolved = shutil.which(cmd)
         if resolved and resolved not in candidates:
             candidates.append(resolved)
@@ -30,35 +65,118 @@ def _discover_python_executable():
     if sys.executable and sys.executable not in candidates:
         candidates.append(sys.executable)
 
+    discovered = []
     for exe in candidates:
         try:
-            probe = subprocess.run(
-                [exe, "-c", "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"],
-                capture_output=True,
-                text=True,
-                timeout=5,
-            )
+            version_tuple = _probe_python_version(exe)
         except Exception:
             continue
 
-        if probe.returncode != 0:
+        if not version_tuple:
             continue
 
-        version_text = (probe.stdout or "").strip()
-        parts = version_text.split(".")
-        if len(parts) < 2:
-            continue
-
-        try:
-            major = int(parts[0])
-            minor = int(parts[1])
-        except ValueError:
-            continue
+        major, minor = version_tuple
 
         if (major, minor) >= MIN_PYTHON:
-            return exe, f"{major}.{minor}"
+            discovered.append({
+                "exe": exe,
+                "version": f"{major}.{minor}",
+                "is_fusion": _is_fusion_python(exe),
+            })
 
-    return None, None
+    discovered.sort(key=lambda item: (item["is_fusion"], item["exe"].lower()))
+    return discovered
+
+
+def _select_python_executable(ui, design, candidates):
+    if not candidates:
+        candidates = []
+
+    last_py_attr = design.attributes.itemByName(ATTR_GROUP, ATTR_LAST_PYTHON)
+    last_py = last_py_attr.value if last_py_attr else None
+
+    default_index = 1
+    if last_py:
+        for idx, item in enumerate(candidates, start=1):
+            if os.path.normcase(item["exe"]) == os.path.normcase(last_py):
+                default_index = idx
+                break
+
+    lines = [
+        "Choose Python interpreter for conversion (enter number):",
+        "",
+    ]
+    for idx, item in enumerate(candidates, start=1):
+        tag = " [Fusion embedded Python]" if item["is_fusion"] else ""
+        lines.append(f"{idx}. {item['exe']} (Python {item['version']}){tag}")
+
+    manual_index = len(candidates) + 1
+    lines.append(f"{manual_index}. Specify path manually")
+    lines.append("")
+    lines.append("Tip: Prefer a non-Fusion interpreter for pip-managed packages.")
+
+    user_input, cancelled = ui.inputBox(
+        "\n".join(lines),
+        "Select Python Interpreter",
+        str(default_index),
+    )
+    if cancelled:
+        return None, None
+
+    try:
+        selected_index = int((user_input or "").strip())
+    except ValueError:
+        ui.messageBox("Invalid selection. Please run again and enter a number from the list.")
+        return None, None
+
+    if selected_index == manual_index:
+        manual_default = last_py if last_py else "C:\\Python313\\python.exe"
+        manual_path, manual_cancelled = ui.inputBox(
+            "Enter full path to python executable:",
+            "Manual Python Path",
+            manual_default,
+        )
+        if manual_cancelled:
+            return None, None
+
+        chosen = (manual_path or "").strip().strip('"')
+        if not chosen:
+            ui.messageBox("No path entered. Please run again and enter a Python executable path.")
+            return None, None
+        if not os.path.isfile(chosen):
+            ui.messageBox(f"File not found:\n{chosen}")
+            return None, None
+
+        try:
+            version_tuple = _probe_python_version(chosen)
+        except Exception as ex:
+            ui.messageBox(f"Failed to probe Python interpreter:\n{str(ex)}")
+            return None, None
+
+        if not version_tuple:
+            ui.messageBox(
+                "The selected file could not be used as a Python interpreter.\n"
+                "Please choose a valid python executable."
+            )
+            return None, None
+
+        if version_tuple < MIN_PYTHON:
+            ui.messageBox(
+                f"Python {version_tuple[0]}.{version_tuple[1]} is too old. "
+                f"Please choose Python {MIN_PYTHON[0]}.{MIN_PYTHON[1]} or newer."
+            )
+            return None, None
+
+        design.attributes.add(ATTR_GROUP, ATTR_LAST_PYTHON, chosen)
+        return chosen, f"{version_tuple[0]}.{version_tuple[1]}"
+
+    if selected_index < 1 or selected_index > len(candidates):
+        ui.messageBox("Selection out of range. Please run again and choose a listed number.")
+        return None, None
+
+    selected = candidates[selected_index - 1]
+    design.attributes.add(ATTR_GROUP, ATTR_LAST_PYTHON, selected["exe"])
+    return selected["exe"], selected["version"]
 
 def run(context):
     ui = None
@@ -71,7 +189,7 @@ def run(context):
         root_name = design.rootComponent.name if design and design.rootComponent else "fusion_model"
         default_stem = _safe_file_stem(root_name)
 
-        last_dir_attr = app.attributes.itemByName(ATTR_GROUP, ATTR_LAST_DIR)
+        last_dir_attr = design.attributes.itemByName(ATTR_GROUP, ATTR_LAST_DIR)
         default_dir = os.path.expanduser("~")
         if last_dir_attr and os.path.isdir(last_dir_attr.value):
             default_dir = last_dir_attr.value
@@ -92,7 +210,7 @@ def run(context):
 
         out_dir = os.path.dirname(glb_path)
         if out_dir and os.path.isdir(out_dir):
-            app.attributes.add(ATTR_GROUP, ATTR_LAST_DIR, out_dir)
+            design.attributes.add(ATTR_GROUP, ATTR_LAST_DIR, out_dir)
         
         # Define paths
         step_name = f"{os.path.splitext(os.path.basename(glb_path))[0]}.step"
@@ -120,12 +238,13 @@ except Exception as e:
     print(f"System Subprocess Exception: {{str(e)}}")
 """
 
-        # Resolve a system Python executable for running external packages.
-        python_executable, python_version = _discover_python_executable()
+        # Resolve and select a Python executable for running external packages.
+        py_candidates = _discover_python_candidates()
+        python_executable, python_version = _select_python_executable(ui, design, py_candidates)
         if not python_executable:
             ui.messageBox(
-                "Could not find a suitable Python interpreter (3.10+). "
-                "Install Python 3.10+ and ensure 'python' is on PATH."
+                "No Python interpreter selected.\n\n"
+                "Install Python 3.10+ and ensure it is on PATH if the list was empty."
             )
             return
         app.log(f"Using Python interpreter: {python_executable} (version {python_version})")
