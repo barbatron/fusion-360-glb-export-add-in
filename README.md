@@ -96,7 +96,7 @@ For body-only export, the add-in creates a temporary component, copies the body 
 
 The add-in stores a configured Python interpreter and reuses it on later exports.
 
-Use Configure Export Python to choose the interpreter:
+Use the "Configure Export Python" command to select a specific Python interpreter:
 - Auto-detected interpreters from PATH and common install locations.
 - Optional manual path entry.
 - Fusion embedded Python is labeled in the picker.
