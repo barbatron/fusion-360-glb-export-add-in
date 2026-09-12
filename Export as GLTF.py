@@ -55,12 +55,77 @@ def _probe_python_version(exe):
     return major, minor
 
 
+def _find_common_python_paths():
+    found = []
+
+    def _add(path):
+        if path and os.path.isfile(path) and path not in found:
+            found.append(path)
+
+    # Typical per-user and system Python installs.
+    local_app_data = os.environ.get("LOCALAPPDATA")
+    if local_app_data:
+        py_root = os.path.join(local_app_data, "Programs", "Python")
+        if os.path.isdir(py_root):
+            for entry in os.listdir(py_root):
+                _add(os.path.join(py_root, entry, "python.exe"))
+
+    for env_var in ("ProgramFiles", "ProgramFiles(x86)"):
+        base = os.environ.get(env_var)
+        if not base:
+            continue
+        py_root = os.path.join(base, "Python")
+        if os.path.isdir(py_root):
+            for entry in os.listdir(py_root):
+                _add(os.path.join(py_root, entry, "python.exe"))
+
+    # Conda envs (base and named envs).
+    user_profile = os.environ.get("USERPROFILE")
+    if user_profile:
+        _add(os.path.join(user_profile, "anaconda3", "python.exe"))
+        _add(os.path.join(user_profile, "miniconda3", "python.exe"))
+        for conda_base in ("anaconda3", "miniconda3"):
+            envs_dir = os.path.join(user_profile, conda_base, "envs")
+            if os.path.isdir(envs_dir):
+                for env_name in os.listdir(envs_dir):
+                    _add(os.path.join(envs_dir, env_name, "python.exe"))
+
+    # Parse Python launcher registry view for installed interpreters.
+    py_launcher = shutil.which("py")
+    if py_launcher:
+        try:
+            py_list = subprocess.run(
+                [py_launcher, "-0p"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if py_list.returncode == 0:
+                for raw in (py_list.stdout or "").splitlines():
+                    line = raw.strip()
+                    if not line:
+                        continue
+                    # Typical format: -V:3.13 * C:\Path\to\python.exe
+                    if " " in line:
+                        maybe_path = line.split()[-1].strip()
+                        maybe_path = maybe_path.strip('"')
+                        _add(maybe_path)
+        except Exception:
+            pass
+
+    return found
+
+
 def _discover_python_candidates():
     candidates = []
     for cmd in ("python", "python3", "py"):
         resolved = shutil.which(cmd)
         if resolved and resolved not in candidates:
             candidates.append(resolved)
+
+    for exe in _find_common_python_paths():
+        if exe not in candidates:
+            candidates.append(exe)
 
     if sys.executable and sys.executable not in candidates:
         candidates.append(sys.executable)
