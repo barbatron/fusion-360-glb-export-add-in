@@ -25,6 +25,10 @@ For body-only export, the add-in creates a temporary component, copies the body 
   - Appears in right-click menu when a supported entity is selected.
   - Exports only the selected item.
 
+- Configure Export Python
+  - Added to the Solid workspace Scripts and Add-Ins panel.
+  - Lets you choose and save the Python interpreter used for export.
+
 ## Save Path and Naming
 
 - A Save As dialog is shown before conversion.
@@ -36,10 +40,14 @@ For body-only export, the add-in creates a temporary component, copies the body 
 
 ## Python Interpreter and Dependencies
 
-The add-in lets you choose a Python interpreter each run:
+The add-in stores a configured Python interpreter and reuses it on later exports.
+
+Use Configure Export Python to choose the interpreter:
 - Auto-detected interpreters from PATH and common install locations.
 - Optional manual path entry.
 - Fusion embedded Python is labeled in the picker.
+
+During export, if no valid interpreter is configured, the add-in prompts to configure one.
 
 Before export, the add-in checks for required modules:
 - numpy
@@ -50,11 +58,11 @@ If missing, it can prompt to install them into the selected interpreter.
 ## Typical Usage
 
 1. Enable the add-in in Scripts and Add-Ins.
-2. Trigger export by either:
+2. (Recommended once) Run Configure Export Python and select your preferred interpreter.
+3. Trigger export by either:
    - Clicking Export as GLB in the toolbar, or
    - Right-clicking a selected component/body and choosing Export Selection as GLB.
-3. Choose output path in Save As.
-4. Choose Python interpreter.
+4. Choose output path in Save As.
 5. Allow dependency install if prompted.
 
 ## Notes
@@ -69,7 +77,8 @@ If missing, it can prompt to install them into the selected interpreter.
   - Ensure exactly one supported entity is selected.
 
 - Dependency import failures:
-  - Choose a non-Fusion interpreter and install numpy + cascadio there.
+  - Run Configure Export Python and choose a non-Fusion interpreter.
+  - Install numpy + cascadio into that interpreter when prompted.
 
 - Button not visible:
   - Reload the add-in and check the Solid workspace Scripts and Add-Ins panel.

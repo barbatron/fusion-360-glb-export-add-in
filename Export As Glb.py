@@ -17,10 +17,20 @@ CMD_DESCRIPTION = "Export current design to GLB using cascadio"
 SEL_CMD_ID = "ExportSelectionAsGLBCommand"
 SEL_CMD_NAME = "Export Selection as GLB"
 SEL_CMD_DESCRIPTION = "Export selected component/body to GLB using cascadio"
+CFG_CMD_ID = "ConfigureExportPythonCommand"
+CFG_CMD_NAME = "Configure Export Python"
+CFG_CMD_DESCRIPTION = "Choose and save Python interpreter for GLB export"
 WORKSPACE_ID = "FusionSolidEnvironment"
 PANEL_ID = "SolidScriptsAddinsPanel"
 
 handlers = []
+
+
+def _with_config_tip(message):
+    return (
+        f"{message}\n\n"
+        f"Tip: Use '{CFG_CMD_NAME}' if you need to re-select the Python executable."
+    )
 
 
 def _safe_file_stem(name):
@@ -202,7 +212,7 @@ def _select_python_executable(ui, design, candidates):
     try:
         selected_index = int((user_input or "").strip())
     except ValueError:
-        ui.messageBox("Invalid selection. Please run again and enter a number from the list.")
+        ui.messageBox(_with_config_tip("Invalid selection. Please run again and enter a number from the list."))
         return None, None
 
     if selected_index == manual_index:
@@ -217,29 +227,33 @@ def _select_python_executable(ui, design, candidates):
 
         chosen = (manual_path or "").strip().strip('"')
         if not chosen:
-            ui.messageBox("No path entered. Please run again and enter a Python executable path.")
+            ui.messageBox(_with_config_tip("No path entered. Please run again and enter a Python executable path."))
             return None, None
         if not os.path.isfile(chosen):
-            ui.messageBox(f"File not found:\n{chosen}")
+            ui.messageBox(_with_config_tip(f"File not found:\n{chosen}"))
             return None, None
 
         try:
             version_tuple = _probe_python_version(chosen)
         except Exception as ex:
-            ui.messageBox(f"Failed to probe Python interpreter:\n{str(ex)}")
+            ui.messageBox(_with_config_tip(f"Failed to probe Python interpreter:\n{str(ex)}"))
             return None, None
 
         if not version_tuple:
             ui.messageBox(
-                "The selected file could not be used as a Python interpreter.\n"
-                "Please choose a valid python executable."
+                _with_config_tip(
+                    "The selected file could not be used as a Python interpreter.\n"
+                    "Please choose a valid python executable."
+                )
             )
             return None, None
 
         if version_tuple < MIN_PYTHON:
             ui.messageBox(
-                f"Python {version_tuple[0]}.{version_tuple[1]} is too old. "
-                f"Please choose Python {MIN_PYTHON[0]}.{MIN_PYTHON[1]} or newer."
+                _with_config_tip(
+                    f"Python {version_tuple[0]}.{version_tuple[1]} is too old. "
+                    f"Please choose Python {MIN_PYTHON[0]}.{MIN_PYTHON[1]} or newer."
+                )
             )
             return None, None
 
@@ -247,12 +261,58 @@ def _select_python_executable(ui, design, candidates):
         return chosen, f"{version_tuple[0]}.{version_tuple[1]}"
 
     if selected_index < 1 or selected_index > len(candidates):
-        ui.messageBox("Selection out of range. Please run again and choose a listed number.")
+        ui.messageBox(_with_config_tip("Selection out of range. Please run again and choose a listed number."))
         return None, None
 
     selected = candidates[selected_index - 1]
     design.attributes.add(ATTR_GROUP, ATTR_LAST_PYTHON, selected["exe"])
     return selected["exe"], selected["version"]
+
+
+def _get_saved_python_executable(design):
+    last_py_attr = design.attributes.itemByName(ATTR_GROUP, ATTR_LAST_PYTHON)
+    if not last_py_attr or not last_py_attr.value:
+        return None, None, "No configured Python interpreter found."
+
+    chosen = last_py_attr.value
+    if not os.path.isfile(chosen):
+        return None, None, f"Configured Python path no longer exists:\n{chosen}"
+
+    try:
+        version_tuple = _probe_python_version(chosen)
+    except Exception as ex:
+        return None, None, f"Failed to probe configured interpreter:\n{str(ex)}"
+
+    if not version_tuple:
+        return None, None, f"Configured path is not a valid Python interpreter:\n{chosen}"
+
+    if version_tuple < MIN_PYTHON:
+        return None, None, (
+            f"Configured Python {version_tuple[0]}.{version_tuple[1]} is too old. "
+            f"Need {MIN_PYTHON[0]}.{MIN_PYTHON[1]}+"
+        )
+
+    return chosen, f"{version_tuple[0]}.{version_tuple[1]}", None
+
+
+def configure_python_interpreter(ui, app, design):
+    py_candidates = _discover_python_candidates()
+    python_executable, python_version = _select_python_executable(ui, design, py_candidates)
+    if not python_executable:
+        ui.messageBox(
+            _with_config_tip(
+                "No Python interpreter selected.\n\n"
+                "Install Python 3.10+ and ensure it is on PATH if the list was empty."
+            )
+        )
+        return None, None
+
+    app.log(f"Configured Python interpreter: {python_executable} (version {python_version})")
+    ui.messageBox(
+        f"Python interpreter saved for future exports:\n{python_executable}\n\n"
+        f"Version: {python_version}"
+    )
+    return python_executable, python_version
 
 
 def _supported_selection_entity(entity):
@@ -359,15 +419,21 @@ except Exception as e:
     print(f"System Subprocess Exception: {{str(e)}}")
 """
 
-    # Resolve and select a Python executable for running external packages.
-    py_candidates = _discover_python_candidates()
-    python_executable, python_version = _select_python_executable(ui, design, py_candidates)
+    # Use previously configured Python, prompting for configuration only when missing/invalid.
+    python_executable, python_version, reason = _get_saved_python_executable(design)
     if not python_executable:
-        ui.messageBox(
-            "No Python interpreter selected.\n\n"
-            "Install Python 3.10+ and ensure it is on PATH if the list was empty."
+        should_configure = ui.messageBox(
+            _with_config_tip(f"{reason}\n\nConfigure Python interpreter now?"),
+            "Python Configuration Required",
+            adsk.core.MessageBoxButtonTypes.YesNoButtonType,
+            adsk.core.MessageBoxIconTypes.WarningIconType,
         )
-        return
+        if should_configure != adsk.core.DialogResults.DialogYes:
+            return
+        python_executable, python_version = configure_python_interpreter(ui, app, design)
+        if not python_executable:
+            return
+
     app.log(f"Using Python interpreter: {python_executable} (version {python_version})")
 
     # Validate required modules in the same interpreter before conversion.
@@ -390,9 +456,11 @@ except Exception as e:
         )
         if ask != adsk.core.DialogResults.DialogYes:
             ui.messageBox(
-                "Dependency install skipped.\n\n"
-                f"Run this command manually:\n{install_cmd}\n\n"
-                f"Preflight stderr:\n{err}"
+                _with_config_tip(
+                    "Dependency install skipped.\n\n"
+                    f"Run this command manually:\n{install_cmd}\n\n"
+                    f"Preflight stderr:\n{err}"
+                )
             )
             return
 
@@ -405,9 +473,11 @@ except Exception as e:
         if install.returncode != 0:
             install_err = install.stderr.strip() if install.stderr else "(no stderr)"
             ui.messageBox(
-                "Automatic dependency install failed.\n\n"
-                f"Command:\n{install_cmd}\n\n"
-                f"stderr:\n{install_err}"
+                _with_config_tip(
+                    "Automatic dependency install failed.\n\n"
+                    f"Command:\n{install_cmd}\n\n"
+                    f"stderr:\n{install_err}"
+                )
             )
             return
 
@@ -420,9 +490,11 @@ except Exception as e:
         if verify.returncode != 0:
             verify_err = verify.stderr.strip() if verify.stderr else "(no stderr)"
             ui.messageBox(
-                "Dependencies still failed to import after install.\n\n"
-                f"Interpreter: {python_executable}\n\n"
-                f"stderr:\n{verify_err}"
+                _with_config_tip(
+                    "Dependencies still failed to import after install.\n\n"
+                    f"Interpreter: {python_executable}\n\n"
+                    f"stderr:\n{verify_err}"
+                )
             )
             return
 
@@ -445,7 +517,9 @@ except Exception as e:
         out = stdout_text.strip() if stdout_text else "(no stdout)"
         err = stderr_text.strip() if stderr_text else "(no stderr)"
         ui.messageBox(
-            f'Process timed out after 8 seconds.\n\nInterpreter:\n{python_executable}\n\nstdout:\n{out}\n\nstderr:\n{err}'
+            _with_config_tip(
+                f'Process timed out after 8 seconds.\n\nInterpreter:\n{python_executable}\n\nstdout:\n{out}\n\nstderr:\n{err}'
+            )
         )
         return
 
@@ -457,14 +531,16 @@ except Exception as e:
         out = stdout_text.strip() if stdout_text else "(no stdout)"
         err = stderr_text.strip() if stderr_text else "(no stderr)"
         ui.messageBox(
-            f'Process terminated with exit code {proc_result}.\n\nInterpreter:\n{python_executable}\n\nstdout:\n{out}\n\nstderr:\n{err}'
+            _with_config_tip(
+                f'Process terminated with exit code {proc_result}.\n\nInterpreter:\n{python_executable}\n\nstdout:\n{out}\n\nstderr:\n{err}'
+            )
         )
 
 
 class _CommandExecuteHandler(adsk.core.CommandEventHandler):
-    def __init__(self, selection_only=False):
+    def __init__(self, mode="full"):
         super().__init__()
-        self.selection_only = selection_only
+        self.mode = mode
 
     def notify(self, args):
         ui = None
@@ -473,13 +549,17 @@ class _CommandExecuteHandler(adsk.core.CommandEventHandler):
             ui = app.userInterface
             design = app.activeProduct
             if not design:
-                ui.messageBox("No active design found.")
+                ui.messageBox(_with_config_tip("No active design found."))
                 return
 
-            if self.selection_only:
+            if self.mode == "configure":
+                configure_python_interpreter(ui, app, design)
+                return
+
+            if self.mode == "selection":
                 target_component, suggested_name, temp_occ = _resolve_selection_export_target(ui, design)
                 if not target_component:
-                    ui.messageBox("Select a component occurrence or body, then right-click and run Export Selection as GLB.")
+                    ui.messageBox(_with_config_tip("Select a component occurrence or body, then right-click and run Export Selection as GLB."))
                     return
                 try:
                     execute_export(ui, app, design, export_component=target_component, default_stem=suggested_name)
@@ -490,18 +570,18 @@ class _CommandExecuteHandler(adsk.core.CommandEventHandler):
                 execute_export(ui, app, design)
         except Exception:
             if ui:
-                ui.messageBox(f'Export as GLB failed:\n{traceback.format_exc()}')
+                ui.messageBox(_with_config_tip(f'Export as GLB failed:\n{traceback.format_exc()}'))
 
 
 class _CommandCreatedHandler(adsk.core.CommandCreatedEventHandler):
-    def __init__(self, selection_only=False):
+    def __init__(self, mode="full"):
         super().__init__()
-        self.selection_only = selection_only
+        self.mode = mode
 
     def notify(self, args):
         try:
             cmd = args.command
-            on_execute = _CommandExecuteHandler(self.selection_only)
+            on_execute = _CommandExecuteHandler(self.mode)
             cmd.execute.add(on_execute)
             handlers.append(on_execute)
         except Exception:
@@ -556,13 +636,21 @@ def start(context):
         if not sel_cmd_def:
             sel_cmd_def = ui.commandDefinitions.addButtonDefinition(SEL_CMD_ID, SEL_CMD_NAME, SEL_CMD_DESCRIPTION)
 
-        on_created = _CommandCreatedHandler(selection_only=False)
+        cfg_cmd_def = ui.commandDefinitions.itemById(CFG_CMD_ID)
+        if not cfg_cmd_def:
+            cfg_cmd_def = ui.commandDefinitions.addButtonDefinition(CFG_CMD_ID, CFG_CMD_NAME, CFG_CMD_DESCRIPTION)
+
+        on_created = _CommandCreatedHandler(mode="full")
         cmd_def.commandCreated.add(on_created)
         handlers.append(on_created)
 
-        on_sel_created = _CommandCreatedHandler(selection_only=True)
+        on_sel_created = _CommandCreatedHandler(mode="selection")
         sel_cmd_def.commandCreated.add(on_sel_created)
         handlers.append(on_sel_created)
+
+        on_cfg_created = _CommandCreatedHandler(mode="configure")
+        cfg_cmd_def.commandCreated.add(on_cfg_created)
+        handlers.append(on_cfg_created)
 
         on_marking_menu = _MarkingMenuHandler()
         ui.markingMenuDisplaying.add(on_marking_menu)
@@ -578,11 +666,16 @@ def start(context):
             if not control:
                 control = panel.controls.addCommand(cmd_def)
                 control.isPromoted = True
+
+            cfg_control = panel.controls.itemById(CFG_CMD_ID)
+            if not cfg_control:
+                cfg_control = panel.controls.addCommand(cfg_cmd_def)
+                cfg_control.isPromoted = False
         else:
-            ui.messageBox("Could not find target toolbar panel for Export as GLB add-in.")
+            ui.messageBox(_with_config_tip("Could not find target toolbar panel for Export as GLB add-in."))
     except Exception:
         if ui:
-            ui.messageBox(f'Add-in start failed:\n{traceback.format_exc()}')
+            ui.messageBox(_with_config_tip(f'Add-in start failed:\n{traceback.format_exc()}'))
 
 
 def stop(context):
@@ -601,6 +694,10 @@ def stop(context):
             if control:
                 control.deleteMe()
 
+            cfg_control = panel.controls.itemById(CFG_CMD_ID)
+            if cfg_control:
+                cfg_control.deleteMe()
+
         cmd_def = ui.commandDefinitions.itemById(CMD_ID)
         if cmd_def:
             cmd_def.deleteMe()
@@ -609,10 +706,14 @@ def stop(context):
         if sel_cmd_def:
             sel_cmd_def.deleteMe()
 
+        cfg_cmd_def = ui.commandDefinitions.itemById(CFG_CMD_ID)
+        if cfg_cmd_def:
+            cfg_cmd_def.deleteMe()
+
         handlers.clear()
     except Exception:
         if ui:
-            ui.messageBox(f'Add-in stop failed:\n{traceback.format_exc()}')
+            ui.messageBox(_with_config_tip(f'Add-in stop failed:\n{traceback.format_exc()}'))
 
 
 def run(context):
