@@ -113,18 +113,19 @@ If missing, it can prompt to install them into the selected interpreter.
 
 1. Enable the add-in in Scripts and Add-Ins.
 2. (Recommended once) Run Configure Export Python and select your preferred interpreter.
+   - If you don't have any preference or don't know what to choose, select any option that isn't the built-in - both Windows and MacOS come with Python interpreters pre-installed and they probably work fine.
+   - If no interpreter is listed apart from the one provided by Fusion, you can get one from [Python's official download page](https://www.python.org/downloads/).
 3. Trigger export by either:
    - Clicking Export as GLB in the toolbar, or
    - Right-clicking a selected component/body and choosing Export Selection as GLB.
 4. Choose output path in Save As.
 5. Allow dependency install if prompted.
 
-## Notes
+## Why external interpreter is used
 
-- Enabling the add-in should only register UI; it should not start export immediately.
-- GLB is used consistently as the output format.
-- Vendoring numpy/cascadio into the add-in was considered, but was not adopted due to higher maintenance overhead and native binary compatibility caveats across Fusion/Python/platform updates.
-- If command labels do not refresh after edits, toggle the add-in off/on or restart Fusion.
+Fusion won't keep external dependencies installed into its own Python environment.
+
+Vendoring `numpy` and `cascadio` into the add-in was considered but I opted out of this approach due to higher maintenance overhead and native binary compatibility caveats across Fusion/Python/platform updates. For me, this setup works fine at the cost of a slightly slower export and subprocess windows popping up. Suggestions and ideas for improvements are very welcome!
 
 ## Troubleshooting
 
