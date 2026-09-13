@@ -79,7 +79,7 @@ For body-only export, the add-in creates a temporary component, copies the body 
   - Appears in right-click menu when a supported entity is selected.
   - Exports only the selected item.
 
-- Export as GLB configuration
+- Configure Python for GLB exports
   - Added to the Solid workspace Scripts and Add-Ins panel.
   - Lets you choose and save the Python interpreter used for export.
 
@@ -96,7 +96,7 @@ For body-only export, the add-in creates a temporary component, copies the body 
 
 The add-in stores a configured Python interpreter and reuses it on later exports.
 
-Use the "Export as GLB configuration" command to select a specific Python interpreter:
+Use the "Configure Python for GLB exports" command to select a specific Python interpreter:
 - Auto-detected interpreters from PATH and common install locations.
 - Optional manual path entry.
 - Fusion embedded Python is labeled in the picker.
@@ -112,7 +112,7 @@ If missing, it can prompt to install them into the selected interpreter.
 ## Typical Usage
 
 1. Enable the add-in in Scripts and Add-Ins.
-2. (Recommended once) Run Export as GLB configuration and select your preferred interpreter.
+2. (Recommended once) Run Configure Python for GLB exports and select your preferred interpreter.
    - If you are not sure whether Python is installed, check first:
      - Windows (PowerShell): py -3 --version (or python --version)
      - macOS (Terminal): python3 --version
@@ -135,7 +135,7 @@ Vendoring `numpy` and `cascadio` into the add-in was considered but I opted out 
   - Ensure exactly one supported entity is selected.
 
 - Dependency import failures:
-  - Run Export as GLB configuration and choose a non-Fusion interpreter.
+  - Run Configure Python for GLB exports and choose a non-Fusion interpreter.
   - Install numpy + cascadio into that interpreter when prompted.
 
 - Button not visible:
