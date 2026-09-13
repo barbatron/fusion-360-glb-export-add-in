@@ -5,6 +5,40 @@ This Fusion 360 add-in exports CAD geometry to GLB files by:
 2. Running a selected external Python interpreter.
 3. Using cascadio to convert STEP to GLB.
 
+## Autodesk App Submission Package
+
+Autodesk requires all product files to be submitted in a single ZIP file.
+
+This repository includes a Makefile target that builds:
+- dist/Export-As-Glb-submission.zip
+
+From the add-in folder, run:
+
+```bash
+make package
+```
+
+On Windows, if GNU Make is not installed, run the PowerShell packager directly:
+
+```powershell
+.\package-submission.ps1
+```
+
+The package includes required files:
+- Export As Glb.manifest
+- Export As Glb.py
+
+It also includes helpful supporting files:
+- LICENSE
+- README.md
+- addon-icon.svg
+
+Clean build artifacts:
+
+```bash
+make clean
+```
+
 ## Installation
 
 ### One-liner install scripts
