@@ -6,19 +6,19 @@ import sys
 import tempfile
 import traceback
 
-ATTR_GROUP = "ExportAsGLTF"
+ATTR_GROUP = "ExportAsGLB"
 ATTR_LAST_DIR = "lastExportDir"
 ATTR_LAST_PYTHON = "lastPythonExecutable"
 MIN_PYTHON = (3, 10)
 
-CMD_ID = "ExportAsGLTFCommand"
+CMD_ID = "ExportAsGLBCommand"
 CMD_NAME = "Export as GLB"
 CMD_DESCRIPTION = "Export current design to GLB using cascadio"
 SEL_CMD_ID = "ExportSelectionAsGLBCommand"
 SEL_CMD_NAME = "Export Selection as GLB"
 SEL_CMD_DESCRIPTION = "Export selected component/body to GLB using cascadio"
 CFG_CMD_ID = "ConfigureExportPythonCommand"
-CFG_CMD_NAME = "Configure Export Python"
+CFG_CMD_NAME = "Export as GLB configuration"
 CFG_CMD_DESCRIPTION = "Choose and save Python interpreter for GLB export"
 WORKSPACE_ID = "FusionSolidEnvironment"
 PANEL_ID = "SolidScriptsAddinsPanel"

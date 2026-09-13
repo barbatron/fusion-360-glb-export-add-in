@@ -5,9 +5,15 @@ This Fusion 360 add-in exports CAD geometry to GLB files by:
 2. Running a selected external Python interpreter.
 3. Using cascadio to convert STEP to GLB.
 
+If you are new to Fusion's app ecosystem, this project is an add-in (not a one-off script). Add-ins can stay enabled between sessions and can optionally run on startup.
+
+Fusion loads this add-in from your local AddIns folder:
+- Windows: %AppData%\Autodesk\Autodesk Fusion 360\API\AddIns
+- macOS: ~/Library/Application Support/Autodesk/Autodesk Fusion 360/API/AddIns
+
 ## Installation
 
-This add-in is not published to the Autodesk Marketplace. Will consider for future. Still only a few clicks to get started using the instructions below:
+This add-in is not currently published to the Autodesk Marketplace. You can still install it in a few clicks using one of the options below.
 
 ### One-liner install scripts
 
@@ -35,7 +41,7 @@ Both scripts download the latest ZIP from GitHub and install the add-in into the
   - Windows: %AppData%\Autodesk\Autodesk Fusion 360\API\AddIns
   - macOS: ~/Library/Application Support/Autodesk/Autodesk Fusion 360/API/AddIns
 
-### Option 3: Clone from GitHub
+### Option 2: Clone from GitHub
 
 1. Clone the repository:
 
@@ -47,21 +53,11 @@ git clone https://github.com/barbatron/fusion-360-glb-export-add-in.git
   - Windows: %AppData%\Autodesk\Autodesk Fusion 360\API\AddIns
   - macOS: ~/Library/Application Support/Autodesk/Autodesk Fusion 360/API/AddIns
 
-**NOTE:** The `.manifest` and `.py` files should thusly end up in their own subdirectory under `AddIns/` like so: `Autodesk/Autodesk Fusion 360/API/AddIns/Export As Glb/`.
+NOTE: The .manifest and .py files should end up in this subdirectory under AddIns/: Autodesk/Autodesk Fusion 360/API/AddIns/Export As Glb/
 
-### Name Alignment Requirement
+After placing files under AddIns, open Scripts and Add-Ins in Fusion, find Export As Glb under the Add-Ins tab, enable Run, and optionally enable Run on Startup.
 
-For best Fusion add-in loading reliability, keep names aligned:
-1. Add-in folder name
-2. Manifest filename base name
-3. Python entry filename base name
-
-Example alignment:
-- Folder: Export As Glb
-- Manifest: Export As Glb.manifest
-- Python file: Export As Glb.py
-
-After copying files, open Scripts and Add-Ins in Fusion, go to Add-Ins, then run and optionally enable Run on Startup.
+When running, the add-in registers toolbar commands in the Solid workspace Scripts and Add-Ins panel, plus a right-click command for supported selections.
 
 ## What It Can Export
 
@@ -83,7 +79,7 @@ For body-only export, the add-in creates a temporary component, copies the body 
   - Appears in right-click menu when a supported entity is selected.
   - Exports only the selected item.
 
-- Configure Export Python
+- Export as GLB configuration
   - Added to the Solid workspace Scripts and Add-Ins panel.
   - Lets you choose and save the Python interpreter used for export.
 
@@ -100,7 +96,7 @@ For body-only export, the add-in creates a temporary component, copies the body 
 
 The add-in stores a configured Python interpreter and reuses it on later exports.
 
-Use the "Configure Export Python" command to select a specific Python interpreter:
+Use the "Export as GLB configuration" command to select a specific Python interpreter:
 - Auto-detected interpreters from PATH and common install locations.
 - Optional manual path entry.
 - Fusion embedded Python is labeled in the picker.
@@ -116,11 +112,11 @@ If missing, it can prompt to install them into the selected interpreter.
 ## Typical Usage
 
 1. Enable the add-in in Scripts and Add-Ins.
-2. (Recommended once) Run Configure Export Python and select your preferred interpreter.
-  - If you are not sure whether Python is installed, check first:
-    - Windows (PowerShell): py -3 --version (or python --version)
-    - macOS (Terminal): python3 --version
-  - If the command is not found, install Python 3.10+ from [Python's official download page](https://www.python.org/downloads/).
+2. (Recommended once) Run Export as GLB configuration and select your preferred interpreter.
+   - If you are not sure whether Python is installed, check first:
+     - Windows (PowerShell): py -3 --version (or python --version)
+     - macOS (Terminal): python3 --version
+   - If the command is not found, install Python 3.10+ from [Python's official download page](https://www.python.org/downloads/).
 3. Trigger export by either:
    - Clicking Export as GLB in the toolbar, or
    - Right-clicking a selected component/body and choosing Export Selection as GLB.
@@ -139,7 +135,7 @@ Vendoring `numpy` and `cascadio` into the add-in was considered but I opted out 
   - Ensure exactly one supported entity is selected.
 
 - Dependency import failures:
-  - Run Configure Export Python and choose a non-Fusion interpreter.
+  - Run Export as GLB configuration and choose a non-Fusion interpreter.
   - Install numpy + cascadio into that interpreter when prompted.
 
 - Button not visible:
