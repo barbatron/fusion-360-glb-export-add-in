@@ -41,7 +41,14 @@ make clean
 
 ## Installation
 
-### Option 1: Download ZIP from GitHub
+### Option 1: Autodesk App Store (recommended)
+
+1. Open the Fusion category in Autodesk App Store:
+  https://apps.autodesk.com/FUSION/en/Home/Index
+2. Search for Export As Glb.
+3. Install the add-in from the listing and restart Fusion if prompted.
+
+### Option 2: Download ZIP from GitHub
 
 1. Open the repository page:
   https://github.com/barbatron/fusion-360-glb-export-add-in
