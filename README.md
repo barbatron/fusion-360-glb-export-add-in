@@ -29,11 +29,11 @@ Both scripts download the latest ZIP from GitHub and install the add-in into the
   https://github.com/barbatron/fusion-360-glb-export-add-in
 2. Click Code, then Download ZIP.
 3. Extract the ZIP.
-4. Copy the add-in folder into your Fusion AddIns directory:
+4. Copy the Export As Glb folder (the folder containing Export As Glb.manifest and Export As Glb.py) into your Fusion AddIns directory:
   - Windows: %AppData%\Autodesk\Autodesk Fusion 360\API\AddIns
   - macOS: ~/Library/Application Support/Autodesk/Autodesk Fusion 360/API/AddIns
 
-### Option 2: Clone from GitHub
+### Option 3: Clone from GitHub
 
 1. Clone the repository:
 
@@ -41,7 +41,7 @@ Both scripts download the latest ZIP from GitHub and install the add-in into the
 git clone https://github.com/barbatron/fusion-360-glb-export-add-in.git
 ```
 
-2. Copy the add-in folder into your Fusion AddIns directory:
+2. Copy the Export As Glb folder (the folder containing Export As Glb.manifest and Export As Glb.py) into your Fusion AddIns directory:
   - Windows: %AppData%\Autodesk\Autodesk Fusion 360\API\AddIns
   - macOS: ~/Library/Application Support/Autodesk/Autodesk Fusion 360/API/AddIns
 
@@ -113,8 +113,10 @@ If missing, it can prompt to install them into the selected interpreter.
 
 1. Enable the add-in in Scripts and Add-Ins.
 2. (Recommended once) Run Configure Export Python and select your preferred interpreter.
-   - If you don't have any preference or don't know what to choose, select any option that isn't the built-in - both Windows and MacOS come with Python interpreters pre-installed and they probably work fine.
-   - If no interpreter is listed apart from the one provided by Fusion, you can get one from [Python's official download page](https://www.python.org/downloads/).
+  - If you are not sure whether Python is installed, check first:
+    - Windows (PowerShell): py -3 --version (or python --version)
+    - macOS (Terminal): python3 --version
+  - If the command is not found, install Python 3.10+ from [Python's official download page](https://www.python.org/downloads/).
 3. Trigger export by either:
    - Clicking Export as GLB in the toolbar, or
    - Right-clicking a selected component/body and choosing Export Selection as GLB.
