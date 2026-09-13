@@ -3,10 +3,10 @@
 	"type":	"addin",
 	"author":	"Joakim Olsson",
 	"description":	{
-		"":	"Exports current project to GLB file using Python subprocess calls to Cascadio (https://pypi.org/project/cascadio/). Icon humbly stolen from Cascadio."
+		"":	"Exports project or selection models to GLB file using [Cascadio](https://pypi.org/project/cascadio)."
 	},
-	"version":	"0.9.0",
+	"version":	"1.0.0",
 	"supportedOS":	"windows|mac",
 	"editEnabled":	true,
-	"iconFilename":	"trimesh.png"
+	"iconFilename":	"addon-icon.svg"
 }
