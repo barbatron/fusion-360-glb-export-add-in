@@ -7,22 +7,6 @@ This Fusion 360 add-in exports CAD geometry to GLB files by:
 
 ## Installation
 
-### One-liner install scripts
-
-PowerShell (Windows):
-
-```powershell
-powershell -ExecutionPolicy Bypass -Command "iwr -UseBasicParsing https://raw.githubusercontent.com/barbatron/fusion-360-glb-export-add-in/main/install-addin.ps1 | iex"
-```
-
-Bash (macOS):
-
-```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/barbatron/fusion-360-glb-export-add-in/main/install-addin.sh)"
-```
-
-Both scripts download the latest ZIP from GitHub and install the add-in into the Fusion AddIns directory under the correct folder name: Export As Glb.
-
 ### Option 1: Download ZIP from GitHub
 
 1. Open the repository page:
