@@ -498,32 +498,17 @@ except Exception as e:
             )
             return
 
-    # Launch the system background process without blocking Fusion
-    process = subprocess.Popen(
+    # Run conversion in the selected interpreter and wait for completion.
+    process = subprocess.run(
         [python_executable, "-c", system_python_code],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True
     )
 
-    # We give it a quick status window confirmation
-    app.log('Handoff script sent to system Python background process.')
-
-    try:
-        stdout_text, stderr_text = process.communicate(timeout=8)
-    except subprocess.TimeoutExpired:
-        process.kill()
-        stdout_text, stderr_text = process.communicate()
-        out = stdout_text.strip() if stdout_text else "(no stdout)"
-        err = stderr_text.strip() if stderr_text else "(no stderr)"
-        ui.messageBox(
-            _with_config_tip(
-                f'Process timed out after 8 seconds.\n\nInterpreter:\n{python_executable}\n\nstdout:\n{out}\n\nstderr:\n{err}'
-            )
-        )
-        return
-
     proc_result = process.returncode
+    stdout_text = process.stdout
+    stderr_text = process.stderr
     if proc_result == 0:
         details = stdout_text.strip() if stdout_text else "(no stdout)"
         ui.messageBox(f'Process completed - see if {glb_path} exists\n\nstdout:\n{details}')
