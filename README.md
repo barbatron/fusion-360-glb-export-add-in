@@ -1,21 +1,21 @@
 # Export As Glb Add-In
 
-This Fusion 360 add-in exports CAD geometry to GLB files by:
-1. Exporting Fusion geometry to a temporary STEP file.
-2. Running a selected external Python interpreter.
-3. Using cascadio to convert STEP to GLB.
+This Fusion 360 add-in exports CAD geometry to GLB files by exporting Fusion geometry to a temporary STEP file. This file is then converted to GLB using the cascadio PyPi package using an external Python interpreter (configurable).
 
 If you are new to Fusion's app ecosystem, this project is an add-in (not a one-off script). Add-ins can stay enabled between sessions and can optionally run on startup.
 
-Fusion loads this add-in from your local AddIns folder:
-- Windows: %AppData%\Autodesk\Autodesk Fusion 360\API\AddIns
-- macOS: ~/Library/Application Support/Autodesk/Autodesk Fusion 360/API/AddIns
-
 ## Installation
 
-This add-in is not currently published to the Autodesk Marketplace. You can still install it in a few clicks using one of the options below.
+This add-in is currently **not published** to the Autodesk Marketplace. You can still install it in a few clicks using one of the options below.
 
-### One-liner install scripts
+Fusion loads this add-in from your local AddIns folder:
+
+- Windows: `%AppData%\Autodesk\Autodesk Fusion 360\API\AddIns`
+- macOS: `~/Library/Application Support/Autodesk/Autodesk Fusion 360/API/AddIns`
+
+The add-in files need to end up in a subfolder named "Export As Glb" under the AddIns folder - here are some options:
+
+### Option 1: TL;DR command lines
 
 PowerShell (Windows):
 
@@ -29,19 +29,18 @@ Bash (macOS):
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/barbatron/fusion-360-glb-export-add-in/main/install-addin.sh)"
 ```
 
-Both scripts download the latest ZIP from GitHub and install the add-in into the Fusion AddIns directory under the correct folder name: Export As Glb.
+Fetches and runs the install scripts. Both scripts download the latest ZIP from GitHub and extracts the files where they need to go. Hopefully.
 
-### Option 1: Download ZIP from GitHub
+### Option 2: Manually download ZIP from GitHub
 
 1. Open the repository page:
   https://github.com/barbatron/fusion-360-glb-export-add-in
 2. Click Code, then Download ZIP.
-3. Extract the ZIP.
-4. Copy the Export As Glb folder (the folder containing Export As Glb.manifest and Export As Glb.py) into your Fusion AddIns directory:
-  - Windows: %AppData%\Autodesk\Autodesk Fusion 360\API\AddIns
-  - macOS: ~/Library/Application Support/Autodesk/Autodesk Fusion 360/API/AddIns
+3. Extract or open the ZIP
+4. Rename the extracted "fusion-360-glb-export-add-in-main" folder to exactly "Export As Glb".
+5. Copy the "Export As Glb" folder into Fusion's AddIns folder.
 
-### Option 2: Clone from GitHub
+### Option 3: Clone from GitHub
 
 1. Clone the repository:
 
@@ -49,15 +48,14 @@ Both scripts download the latest ZIP from GitHub and install the add-in into the
 git clone https://github.com/barbatron/fusion-360-glb-export-add-in.git
 ```
 
-2. Copy the Export As Glb folder (the folder containing Export As Glb.manifest and Export As Glb.py) into your Fusion AddIns directory:
-  - Windows: %AppData%\Autodesk\Autodesk Fusion 360\API\AddIns
-  - macOS: ~/Library/Application Support/Autodesk/Autodesk Fusion 360/API/AddIns
+2. If it doesn't already exist, create an empty "Export As Glb" subfolder in the Fusion 360 add-ins folder.
+3. Copy the add-in's Python and manifest files into the "Export As Glb" subfolder.
 
-NOTE: The .manifest and .py files should end up in this subdirectory under AddIns/: Autodesk/Autodesk Fusion 360/API/AddIns/Export As Glb/
+### Refresh and run add-in
 
-After placing files under AddIns, open Scripts and Add-Ins in Fusion, find Export As Glb under the Add-Ins tab, enable Run, and optionally enable Run on Startup.
+After placing files under AddIns, open the "Scripts and Add-Ins" dialog in Fusion. Optionally filter to add-ins only and find "Export As Glb" in the list. If the "run" switch is on, flip it off. Then flip it on again to run the add-in. You may also enable Run on Startup if desired.
 
-When running, the add-in registers toolbar commands in the Solid workspace Scripts and Add-Ins panel, plus a right-click command for supported selections.
+When the add-in starts, it registers toolbar commands in Fusion's "Scripts and Add-Ins panel" in the Solid workspace, plus a right-click command for supported selections.
 
 ## What It Can Export
 
@@ -69,7 +67,7 @@ When running, the add-in registers toolbar commands in the Solid workspace Scrip
 
 For body-only export, the add-in creates a temporary component, copies the body into it, exports that, then cleans up.
 
-## Main Commands
+## Commands
 
 - Export as GLB
   - Added to the Solid workspace Scripts and Add-Ins panel.
@@ -83,31 +81,26 @@ For body-only export, the add-in creates a temporary component, copies the body 
   - Added to the Solid workspace Scripts and Add-Ins panel.
   - Lets you choose and save the Python interpreter used for export.
 
-## Save Path and Naming
-
-- A Save As dialog is shown before conversion.
-- Default folder remembers your last export location.
-- Default filename is based on:
-  - Root component name (full export), or
-  - Selected component/body name (selection export).
-- Invalid filename characters are sanitized automatically.
-
 ## Python Interpreter and Dependencies
 
-The add-in stores a configured Python interpreter and reuses it on later exports.
+_**Optional setup:** most of the details below are on "auto pilot" - you are not required to take any steps before using the export command, as you ~will~ should be prompted if input is needed or if anything goes wrong. Otherwise check the text console._
+
+The add-in requires the use of an external Python interpreter, which you may already have installed on your system.
 
 Use the "Configure Python for GLB exports" command to select a specific Python interpreter:
+
 - Auto-detected interpreters from PATH and common install locations.
 - Optional manual path entry.
 - Fusion embedded Python is labeled in the picker.
 
-During export, if no valid interpreter is configured, the add-in prompts to configure one.
+The interpreter selection will be remembered for future exports. To change or update the interpreter, re-run the configuration command. If no valid interpreter is configured when invoking the export command, the add-in prompts to configure one.
 
-Before export, the add-in checks for required modules:
-- numpy
-- cascadio
+Before export proceeds, the add-in checks for required modules:
 
-If missing, it can prompt to install them into the selected interpreter.
+- `numpy`
+- `cascadio`
+
+If missing, the add-in will try to install them using `pip`. This may take a while but should only need to happen once.
 
 ## Typical Usage
 
@@ -140,3 +133,7 @@ Vendoring `numpy` and `cascadio` into the add-in was considered but I opted out 
 
 - Button not visible:
   - Reload the add-in and check the Solid workspace Scripts and Add-Ins panel.
+
+## Contributions
+
+Constructive feedback, PRs and suggestions much appreciated! I know the approach is a bit unorthodox but it works for me.
