@@ -3,7 +3,7 @@
 	"type":	"addin",
 	"author":	"Joakim Olsson",
 	"description":	{
-		"":	"Exports project or selection models to GLB file using [Cascadio](https://pypi.org/project/cascadio)."
+		"":	"Exports project or selection models to GLB file using [Cascadio](https://pypi.org/project/cascadio) in subprocess."
 	},
 	"version":	"1.0.0",
 	"supportedOS":	"windows|mac",
