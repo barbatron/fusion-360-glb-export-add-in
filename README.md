@@ -47,6 +47,8 @@ git clone https://github.com/barbatron/fusion-360-glb-export-add-in.git
   - Windows: %AppData%\Autodesk\Autodesk Fusion 360\API\AddIns
   - macOS: ~/Library/Application Support/Autodesk/Autodesk Fusion 360/API/AddIns
 
+**NOTE:** The `.manifest` and `.py` files should thusly end up in their own subdirectory under `AddIns/` like so: `Autodesk/Autodesk Fusion 360/API/AddIns/Export As Glb/`.
+
 ### Name Alignment Requirement
 
 For best Fusion add-in loading reliability, keep names aligned:
