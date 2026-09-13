@@ -7,6 +7,8 @@ This Fusion 360 add-in exports CAD geometry to GLB files by:
 
 ## Installation
 
+This add-in is not published to the Autodesk Marketplace. Will consider for future. Still only a few clicks to get started using the instructions below:
+
 ### One-liner install scripts
 
 PowerShell (Windows):
