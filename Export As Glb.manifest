@@ -1,6 +1,7 @@
 {
 	"autodeskProduct":	"Fusion",
 	"type":	"addin",
+	"id": "605d1737-618f-423e-87af-9d41c37a8601",
 	"author":	"Joakim Olsson",
 	"description":	{
 		"":	"Exports project or selection models to GLB file using [Cascadio](https://pypi.org/project/cascadio) in subprocess."
