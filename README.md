@@ -137,3 +137,13 @@ Vendoring `numpy` and `cascadio` into the add-in was considered but I opted out 
 ## Contributions
 
 Constructive feedback, PRs and suggestions much appreciated! I know the approach is a bit unorthodox but it works for me.
+
+## Packaging a Fusion add-in release
+
+From the repository root, check out the release commit and run this command with Git (Bash or Git Bash). It packages the tracked runtime files under the folder name Fusion expects.
+
+```sh
+git archive --format=zip '--prefix=Export As Glb/' --output=ExportAsGlb-universal.zip HEAD -- 'Export As Glb.manifest' 'Export As Glb.py' addon-icon.svg LICENSE
+```
+
+Upload `ExportAsGlb-universal.zip` as an asset of a stable GitHub Release. Use a numeric tag such as `v1.0.0` matching the version in `Export As Glb.manifest`.
